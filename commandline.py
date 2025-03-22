@@ -1,12 +1,10 @@
-# jadivcommandline: Supermoderny Python GUI CLI nastroj
-# Autor: Janík + ChatGPT
+# jadivcommandline: Supermoderny Python CLI nástroj v shell štýle (bez GUI)
+# Autor: Janík + ChatGPT (terminálová verzia)
 
 import os
 import sys
 import subprocess
-import threading
 import urllib.request
-import customtkinter as ctk
 import psutil
 import shutil
 import datetime
@@ -14,248 +12,200 @@ import webbrowser
 import socket
 import platform
 import getpass
+import random
+import string
 
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("green")
-
-
-class JadivCommandlineApp(ctk.CTk):
+class JadivCommandline:
     def __init__(self):
-        super().__init__()
-        self.title("JadivCommandline")
-        self.geometry("1000x700")
-        self.configure(fg_color=("#101820", "#101820"))
-
-        self.command_entry = ctk.CTkEntry(self, placeholder_text="Zadaj príkaz...", text_color="white")
-        self.command_entry.pack(padx=20, pady=(20, 10), fill="x")
-        self.command_entry.bind("<Return>", self.execute_command)
-
-        self.status_frame = ctk.CTkLabel(self, text="", justify="left", text_color="lightgreen")
-        self.status_frame.pack(padx=20, pady=(0, 10), fill="x")
-
-        self.log_text = ctk.CTkTextbox(self, text_color="white")
-        self.log_text.pack(padx=20, pady=(0, 20), fill="both", expand=True)
-
+        self.history = []
         self.commands = {
             "apps": self.cmd_apps,
             "apps_full": self.cmd_apps_full,
             "run_py": self.cmd_run_py,
             "run_sh": self.cmd_run_sh,
-            "run_scratch": self.cmd_run_scratch,
             "apt_update": self.cmd_apt_update,
             "apt_upgrade": self.cmd_apt_upgrade,
             "apt_install": self.cmd_apt_install,
             "cmd": self.cmd_custom,
             "status": self.cmd_status,
-            "open": self.cmd_open,
             "log": self.cmd_log,
             "edit": self.cmd_edit,
-            "screenshot": self.cmd_screenshot,
-            "chat": self.cmd_chat,
-            "time": self.cmd_time,
-            "ip": self.cmd_ip,
-            "browser": self.cmd_browser,
-            "user": self.cmd_user,
-            "osinfo": self.cmd_osinfo,
             "help": self.cmd_help,
-            "update-commandline": self.update_commandline
+            "calc": self.cmd_calc,
+            "set": self.cmd_set,
+            "greet": lambda args: print("Ahoj! Vitaj v jadivcommandline."),
+            "random_number": lambda args: print(f"Náhodné číslo: {random.randint(1, 100)}"),
+            "today": lambda args: print(f"Dnes je: {datetime.datetime.now().strftime('%A, %d. %B %Y')}"),
+            "clear": lambda args: os.system('clear'),
+            "say": lambda args: print("Použitie: say <text>") if not args else print(" ".join(args)),
+            "double": lambda args: print("Použitie: double <číslo>") if not args or not args[0].isdigit() else print(f"{args[0]} × 2 = {int(args[0]) * 2}"),
+            "whoami": lambda args: print(f"Používateľ: {getpass.getuser()}"),
+            "hostname": lambda args: print(f"Hostname: {socket.gethostname()}"),
+            "diskfree": lambda args: print(f"Voľné miesto: {shutil.disk_usage('/').free // (1024**2)} MB"),
+            "cipher": self.cmd_cipher,
+            "screenshot": self.cmd_screenshot,
+            "osinfo": self.cmd_osinfo,
+            "uptime": self.cmd_uptime,
+            "reboot": self.cmd_reboot,
+            "shutdown": self.cmd_shutdown
         }
 
-        for i in range(1, 201):
-            cmd_name = f"func{i:03d}"
-            self.commands[cmd_name] = self.generate_dummy_function(cmd_name)
-
-    def log(self, message):
-        self.log_text.insert("end", message + "\n")
-        self.log_text.see("end")
-
-    def execute_command(self, event=None):
-        command_text = self.command_entry.get().strip()
-        self.command_entry.delete(0, "end")
-        if not command_text:
-            return
-        self.log(f"> {command_text}")
-        parts = command_text.split()
-        cmd = parts[0]
-        args = parts[1:]
-
-        if cmd == "apps" and args:
-            if args[0] == "full":
-                self.cmd_apps_full(args[1:])
-            else:
-                self.cmd_apps(args)
-        elif cmd == "run" and len(args) >= 2:
-            subtype = args[0]
-            if subtype == "py":
-                self.cmd_run_py(args[1:])
-            elif subtype == "sh":
-                self.cmd_run_sh(args[1:])
-            elif subtype == "scratch":
-                self.cmd_run_scratch(args[1:])
-            else:
-                self.log("Nepodporovaný typ run príkazu.")
-        elif cmd in self.commands:
-            try:
-                self.commands[cmd](args)
-            except Exception as e:
-                self.log(f"Chyba pri vykonávaní príkazu '{cmd}': {e}")
-        else:
-            self.log("Neznámy príkaz. Napíš 'help' pre zoznam príkazov.")
-
-    def cmd_help(self, args):
-        self.log("Dostupné príkazy:")
-        for cmd in sorted(self.commands.keys()):
-            self.log(f" - {cmd}")
-
     def cmd_apps(self, args):
-        if len(args) < 1:
-            self.log("Použitie: apps <nazov_repo>")
+        if not args:
+            print("Použitie: apps <nazov_repo>")
             return
         repo = args[0]
-        url = f"https://github.com/jan-tdy/{repo}.git"
-        self.log(f"Stiahnutie repozitára: {url}")
-        self.run_subprocess(["git", "clone", url])
+        url = f"https://github.com/jan-tdy/{repo}/archive/refs/heads/main.zip"
+        print(f"Sťahujem: {url}")
+        subprocess.run(["wget", url, "-O", f"{repo}.zip"])
 
     def cmd_apps_full(self, args):
-        if len(args) < 1:
-            self.log("Použitie: apps full <git_url>")
+        if not args:
+            print("Použitie: apps_full <celá_adresa_repo>")
             return
         url = args[0]
-        self.log(f"Stiahnutie repozitára: {url}")
-        self.run_subprocess(["git", "clone", url])
+        print(f"Sťahujem: {url}")
+        subprocess.run(["wget", url, "-O", "repo.zip"])
 
     def cmd_run_py(self, args):
-        if len(args) < 1:
-            self.log("Použitie: run py <script.py>")
+        if not args:
+            print("Použitie: run_py <subor.py>")
             return
-        self.run_subprocess([sys.executable, args[0]])
+        subprocess.run(["python3", args[0]])
 
     def cmd_run_sh(self, args):
-        if len(args) < 1:
-            self.log("Použitie: run sh <script.sh>")
+        if not args:
+            print("Použitie: run_sh <skript.sh>")
             return
-        self.run_subprocess(["bash", args[0]])
-
-    def cmd_run_scratch(self, args):
-        if len(args) < 1:
-            self.log("Použitie: run scratch <project.sb3>")
-            return
-        scratch_app = shutil.which("scratch-desktop") or shutil.which("TurboWarp")
-        if not scratch_app:
-            self.log("Scratch3 aplikácia nebola nájdená. Nainštaluj ju ako 'scratch-desktop' alebo 'TurboWarp'.")
-            return
-        self.run_subprocess([scratch_app, args[0]])
+        subprocess.run(["bash", args[0]])
 
     def cmd_apt_update(self, args):
-        self.run_subprocess(["sudo", "apt", "update"])
+        subprocess.run(["sudo", "apt", "update"])
 
     def cmd_apt_upgrade(self, args):
-        self.run_subprocess(["sudo", "apt", "upgrade", "-y"])
+        subprocess.run(["sudo", "apt", "upgrade", "-y"])
 
     def cmd_apt_install(self, args):
-        if len(args) < 1:
-            self.log("Použitie: apt install <balik>")
+        if not args:
+            print("Použitie: apt_install <balík>")
             return
-        self.run_subprocess(["sudo", "apt", "install", args[0], "-y"])
+        subprocess.run(["sudo", "apt", "install", args[0], "-y"])
 
     def cmd_custom(self, args):
-        self.log("Alias príkazy nie sú zatiaľ implementované.")
+        if not args:
+            print("Použitie: cmd <príkaz>")
+            return
+        subprocess.run(args)
 
     def cmd_status(self, args):
-        cpu = psutil.cpu_percent(interval=1)
-        ram = psutil.virtual_memory().percent
-        disk = psutil.disk_usage("/").percent
-        self.status_frame.configure(text=f"CPU: {cpu}%  |  RAM: {ram}%  |  Disk: {disk}%")
-        self.log(f"CPU: {cpu}% | RAM: {ram}% | Disk: {disk}%")
-
-    def cmd_open(self, args):
-        if not args:
-            return
-        self.run_subprocess([args[0]])
+        print("Stav systému:")
+        print(f"Uptime: {datetime.datetime.now() - datetime.datetime.fromtimestamp(psutil.boot_time())}")
+        print(f"CPU Temp: {self.get_cpu_temp()}°C")
+        print(f"Disk voľný: {shutil.disk_usage('/').free // (1024 ** 2)} MB")
 
     def cmd_log(self, args):
-        self.log("Zobrazenie logov priamo v aplikácii.")
+        print("História príkazov:")
+        for i, cmd in enumerate(self.history[-10:], start=1):
+            print(f"{i}: {cmd}")
 
     def cmd_edit(self, args):
-        if not args:
+        print("Editor zatiaľ nie je implementovaný.")
+
+    def cmd_help(self, args):
+        print("Dostupné príkazy:")
+        for cmd in sorted(self.commands):
+            print(f"- {cmd}")
+
+    def cmd_calc(self, args):
+        try:
+            result = eval(" ".join(args))
+            print(f"Výsledok: {result}")
+        except:
+            print("Chybný výraz")
+
+    def cmd_set(self, args):
+        print("Táto verzia zatiaľ nepodporuje nastavenia.")
+
+    def cmd_cipher(self, args):
+        if not args or args[0] not in ["encrypt", "decrypt"]:
+            print("Použitie: cipher encrypt <text> | cipher decrypt <zakodovany_text> <kod>")
             return
-        editor = os.environ.get("EDITOR", "nano")
-        self.run_subprocess([editor, args[0]])
+
+        if args[0] == "encrypt":
+            if len(args) < 2:
+                print("Chyba: Zadaj text na šifrovanie")
+                return
+            text = " ".join(args[1:])
+            pin = ''.join(random.choices(string.digits, k=4))
+            encrypt_char = "*"
+            spaced_text = encrypt_char.join(text)
+            binary_text = ''.join(format(ord(c), '08b') for c in spaced_text)
+            reversed_binary = binary_text[::-1]
+            encoded_text = reversed_binary + ''.join(format(ord(d), '08b') for d in pin)
+            decrypt_code = f'{encrypt_char}{pin}'
+            print("Zašifrované:", encoded_text)
+            print("Kód na dešifrovanie:", decrypt_code)
+
+        elif args[0] == "decrypt":
+            if len(args) < 3:
+                print("Chyba: Zadaj zašifrovaný text a kód")
+                return
+            encrypted_text = args[1]
+            decrypt_code = args[2]
+            encrypt_char = decrypt_code[0]
+            pin = decrypt_code[1:]
+            binary_text = encrypted_text[:-32]
+            original_binary = binary_text[::-1]
+            text_chars = [chr(int(original_binary[i:i+8], 2)) for i in range(0, len(original_binary), 8)]
+            original_text = ''.join(text_chars).replace(encrypt_char, '')
+            print("Dešifrované:", original_text)
 
     def cmd_screenshot(self, args):
-        filename = "screenshot.png"
-        try:
-            import pyautogui
-            pyautogui.screenshot(filename)
-            self.log(f"Screenshot uložený ako {filename}")
-        except Exception as e:
-            self.log(f"Chyba pri screenshote: {e}")
-
-    def cmd_chat(self, args):
-        self.log("Ahoj! Som Jadiv asistent. Povedz niečo a uvidíme, čo s tým spravíme :) (táto funkcia sa rozšíri)")
-
-    def cmd_time(self, args):
-        now = datetime.datetime.now()
-        self.log(f"Aktuálny čas: {now.strftime('%Y-%m-%d %H:%M:%S')}")
-
-    def cmd_ip(self, args):
-        hostname = socket.gethostname()
-        ip = socket.gethostbyname(hostname)
-        self.log(f"Hostname: {hostname} | IP adresa: {ip}")
-
-    def cmd_browser(self, args):
-        if not args:
-            self.log("Použitie: browser <url>")
-            return
-        webbrowser.open(args[0])
-        self.log(f"Otváram v prehliadači: {args[0]}")
-
-    def cmd_user(self, args):
-        user = getpass.getuser()
-        self.log(f"Prihlásený používateľ: {user}")
+        print("Snímka obrazovky sa vytvára...")
+        subprocess.run(["scrot", "screenshot.png"])
+        print("Uložené ako screenshot.png")
 
     def cmd_osinfo(self, args):
-        osname = platform.system()
-        version = platform.version()
-        release = platform.release()
-        self.log(f"Operačný systém: {osname} {release} (verzia {version})")
+        print("OS Info:")
+        print(platform.platform())
 
-    def update_commandline(self, args):
-        self.log("Aktualizujem aplikáciu...")
-        ota_url = "https://raw.githubusercontent.com/jan-tdy/commandline/master/commandline.py"
+    def cmd_uptime(self, args):
+        print("Uptime:")
+        print(datetime.datetime.now() - datetime.datetime.fromtimestamp(psutil.boot_time()))
+
+    def cmd_reboot(self, args):
+        print("Reštartujem systém...")
+        subprocess.run(["sudo", "reboot"])
+
+    def cmd_shutdown(self, args):
+        print("Vypínam systém...")
+        subprocess.run(["sudo", "shutdown", "now"])
+
+    def get_cpu_temp(self):
         try:
-            response = urllib.request.urlopen(ota_url)
-            code = response.read().decode("utf-8")
-            current_file = os.path.realpath(__file__)
-            with open(current_file, "w", encoding="utf-8") as f:
-                f.write(code)
-            self.log("Aktualizácia dokončená, reštartujem...")
-            self.restart_application()
-        except Exception as e:
-            self.log(f"Chyba pri aktualizácii: {e}")
+            with open("/sys/class/thermal/thermal_zone0/temp", "r") as f:
+                return round(int(f.read()) / 1000, 1)
+        except:
+            return "N/A"
 
-    def restart_application(self):
-        python = sys.executable
-        os.execv(python, [python] + sys.argv)
-
-    def run_subprocess(self, cmd_list):
-        def run():
+    def repl(self):
+        while True:
             try:
-                process = subprocess.Popen(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                for line in process.stdout:
-                    self.log(line.strip())
-                for line in process.stderr:
-                    self.log(line.strip())
-            except Exception as e:
-                self.log(f"Chyba pri spúšťaní: {e}")
-        threading.Thread(target=run).start()
+                command_line = input("jadiv> ").strip()
+                if not command_line:
+                    continue
+                self.history.append(command_line)
+                parts = command_line.split()
+                cmd = parts[0]
+                args = parts[1:]
 
-    def generate_dummy_function(self, name):
-        def dummy(args):
-            self.log(f"Spustená funkcia: {name} s argumentmi: {args}")
-        return dummy
-
+                if cmd in self.commands:
+                    self.commands[cmd](args)
+                else:
+                    print(f"Neznámy príkaz: {cmd}")
+            except (KeyboardInterrupt, EOFError):
+                print("\nUkončujem jadivcommandline.")
+                break
 
 if __name__ == "__main__":
-    app = JadivCommandlineApp()
-    app.mainloop()
+    JadivCommandline().repl()
