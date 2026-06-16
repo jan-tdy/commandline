@@ -1,0 +1,5 @@
+# JadivCommandline runtime dependencies.
+# Everything else the tool uses is part of the Python standard library.
+# psutil is optional at runtime (the tool falls back to /proc when it is
+# missing) but is recommended for accurate system status.
+psutil>=5.9
