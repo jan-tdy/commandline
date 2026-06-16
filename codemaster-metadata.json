@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "publisher": "jan-tdy",
+  "repo": "commandline",
+  "homepage": "https://github.com/jan-tdy/commandline",
+  "apps": [
+    {
+      "id": "jadiv-commandline",
+      "name": "JadivCommandline",
+      "tagline": "A modern shell-style command toolkit",
+      "description": "An interactive, shell-style command interpreter for system management and everyday utilities: APT package management, system status, file and script execution, a safe calculator, GitHub downloads and more. Built on a clean, extensible command registry.",
+      "category": "Utilities",
+      "version": "2.0.0",
+      "author": "JapySoft TDY",
+      "icon": null,
+      "subdir": ".",
+      "entrypoint": "commandline.py",
+      "run": "python3 commandline.py",
+      "requirements": "requirements.txt",
+      "update_method": "sync",
+      "maintained": true
+    }
+  ]
+}
