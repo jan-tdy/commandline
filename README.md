@@ -3,7 +3,7 @@
 A modern, **shell-style command toolkit** for system management and everyday
 utilities — a small interactive interpreter you can extend one command at a time.
 
-![version](https://img.shields.io/badge/version-0.2.2-4f8cff?style=for-the-badge)
+![version](https://img.shields.io/badge/version-0.2.0-4f8cff?style=for-the-badge)
 ![python](https://img.shields.io/badge/python-3.8%2B-3776ab?style=for-the-badge)
 
 ---
