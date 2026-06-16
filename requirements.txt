@@ -3,3 +3,10 @@
 # psutil is optional at runtime (the tool falls back to /proc when it is
 # missing) but is recommended for accurate system status.
 psutil>=5.9
+
+# Optional — only needed for the 'merge_pdf' and 'merge_png' commands.
+# Document inputs (docx, doc, odt, ...) also require LibreOffice ('soffice')
+# to be installed via your system package manager.
+pypdf>=4.0
+Pillow>=9.0
+pymupdf>=1.23
