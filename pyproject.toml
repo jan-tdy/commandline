@@ -13,6 +13,11 @@ authors = [{ name = "JapySoft TDY", email = "j44soft@gmail.com" }]
 keywords = ["cli", "shell", "repl", "system", "utilities"]
 dependencies = ["psutil>=5.9"]
 
+[project.optional-dependencies]
+# Enables the merge_pdf / merge_png commands. Document inputs additionally
+# require LibreOffice ('soffice') from your system package manager.
+merge = ["pypdf>=4.0", "Pillow>=9.0", "pymupdf>=1.23"]
+
 [project.urls]
 Homepage = "https://github.com/jan-tdy/commandline"
 

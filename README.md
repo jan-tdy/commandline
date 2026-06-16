@@ -74,10 +74,46 @@ usage of one command, and `exit` (or `Ctrl-D`) to quit.
 | **Shell** | `help`, `log`, `set`, `clear`, `exit`, `quit` |
 | **System** | `apt_update`, `apt_upgrade`, `apt_install`, `status`, `uptime`, `osinfo`, `screenshot`, `reboot`, `shutdown` |
 | **Files** | `run_py`, `run_sh`, `cmd`, `edit` |
+| **Documents** | `merge_pdf`, `merge_png` |
 | **Repositories** | `apps`, `apps_full` |
 | **Utilities** | `calc`, `say`, `double`, `greet`, `random_number`, `today` |
 | **Information** | `whoami`, `hostname`, `diskfree` |
 | **Text** | `cipher` *(toy obfuscation — not secure)* |
+
+---
+
+## Merging files
+
+`merge_pdf` and `merge_png` combine several files — in any mix of formats — into
+a single output file. Everything is funnelled through PDF as a common
+intermediate, so images, PDFs and office/text documents can be merged together.
+
+```text
+jadiv> merge_pdf report.pdf cover.jpg notes.odt scan.pdf letter.docx
+Saved report.pdf (4 file(s) merged).
+jadiv> merge_png board.png slide1.png slide2.png chart.pdf
+Saved board.png (3 file(s) merged).
+```
+
+- **`merge_pdf <output.pdf> <input...>`** — each input becomes one or more pages
+  in a single combined PDF.
+- **`merge_png <output.png> <input...>`** — every resulting page is rendered to
+  an image and stacked top-to-bottom into one tall PNG. (When every input is
+  already an image, they are stitched directly.)
+
+**Prerequisites** (installed on demand — the commands print a hint if something
+is missing):
+
+```bash
+pip install pypdf Pillow pymupdf   # or: pip install '.[merge]'
+sudo apt install libreoffice       # only needed for office/text inputs (docx, odt, …)
+```
+
+| Input type | Handled by |
+|------------|------------|
+| `.jpg`, `.png`, `.gif`, `.bmp`, `.tiff`, `.webp` | Pillow |
+| `.pdf` | used directly |
+| `.docx`, `.doc`, `.odt`, `.rtf`, `.txt`, `.html`, … | LibreOffice (`soffice`) |
 
 ---
 
