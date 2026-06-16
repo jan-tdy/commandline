@@ -83,7 +83,10 @@ def _document_to_pdf(path: Path, tmpdir: Path) -> Path:
             check=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
+            timeout=120,
         )
+    except subprocess.TimeoutExpired as exc:
+        raise ConversionError(f"LibreOffice timed out converting '{path.name}'") from exc
     except subprocess.CalledProcessError as exc:
         detail = (exc.stderr or b"").decode(errors="replace").strip()
         raise ConversionError(f"LibreOffice failed to convert '{path.name}': {detail}") from exc
@@ -101,9 +104,12 @@ def to_pdf(path: Path, tmpdir: Path) -> Path:
     kind = file_kind(path)
     if kind == "pdf":
         return path
+    # A unique subdirectory per input avoids collisions when two inputs share a
+    # filename stem (e.g. a/report.docx and b/report.odt both -> report.pdf).
+    workdir = Path(tempfile.mkdtemp(dir=tmpdir))
     if kind == "image":
-        return _image_to_pdf(path, tmpdir)
-    return _document_to_pdf(path, tmpdir)
+        return _image_to_pdf(path, workdir)
+    return _document_to_pdf(path, workdir)
 
 
 def merge_pdfs(pdf_paths: List[Path], output: Path) -> None:

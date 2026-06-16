@@ -41,6 +41,13 @@ def _collect_inputs(args: List[str], usage: str) -> Tuple[Path, List[Path]] | No
     if missing:
         print(f"Input file(s) not found: {', '.join(missing)}")
         return None
+    try:
+        output_abs = output.resolve()
+        if any(p.resolve() == output_abs for p in inputs):
+            print("The output file cannot also be one of the inputs.")
+            return None
+    except OSError:
+        pass  # if a path cannot be resolved, fall through and let the merge report it
     return output, inputs
 
 
