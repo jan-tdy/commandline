@@ -58,14 +58,14 @@ def apt_upgrade(shell, args: List[str]) -> None:
         proc.run(["sudo", "apt", "upgrade", "-y"])
 
 
-@command("apt_install", category="System", usage="apt_install <package>",
-         help="Install an APT package (sudo).")
+@command("apt_install", category="System", usage="apt_install <package...>",
+         help="Install one or more APT packages (sudo).")
 def apt_install(shell, args: List[str]) -> None:
     if not args:
-        print("Usage: apt_install <package>")
+        print("Usage: apt_install <package...>")
         return
     if proc.require_binary("apt"):
-        proc.run(["sudo", "apt", "install", args[0], "-y"])
+        proc.run(["sudo", "apt", "install", *args, "-y"])
 
 
 @command("status", category="System", usage="status",
