@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 from pathlib import Path
 from typing import Dict, List
 
@@ -93,7 +94,13 @@ class Shell:
     # -- loop -------------------------------------------------------------
     def dispatch(self, line: str) -> None:
         """Parse and execute a single command line."""
-        parts = line.split()
+        try:
+            parts = shlex.split(line)
+        except ValueError as exc:
+            print(f"Could not parse the command line: {exc}")
+            return
+        if not parts:
+            return
         name, args = parts[0], parts[1:]
         cmd = registry.get(name)
         if cmd is None:
