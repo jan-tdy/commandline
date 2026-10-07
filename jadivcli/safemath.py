@@ -36,6 +36,11 @@ _UNARY_OPS: Dict[type, Callable[[float], float]] = {
     ast.USub: operator.neg,
 }
 
+# Above this many decimal digits, a ``**`` result is rejected instead of
+# computed, so an expression like ``9**9**9**9`` can't hang the shell building
+# an astronomically large integer.
+_MAX_POW_RESULT_DIGITS = 1000
+
 # Names that resolve to constants or single-argument math functions.
 _ALLOWED_NAMES: Dict[str, object] = {
     "pi": math.pi,
@@ -61,6 +66,18 @@ _ALLOWED_FUNCS: Dict[str, Callable[..., float]] = {
 }
 
 
+def _check_pow_bounds(base: float, exponent: float) -> None:
+    """Reject a ``**`` whose result would be absurdly large to compute."""
+    if exponent <= 1 or abs(base) <= 1:
+        return
+    try:
+        approx_digits = exponent * math.log10(abs(base))
+    except (ValueError, OverflowError):
+        approx_digits = float("inf")
+    if approx_digits > _MAX_POW_RESULT_DIGITS:
+        raise CalcError("result is too large to compute")
+
+
 def _eval(node: ast.AST) -> float:
     if isinstance(node, ast.Constant):
         if isinstance(node.value, bool) or not isinstance(node.value, (int, float)):
@@ -70,7 +87,15 @@ def _eval(node: ast.AST) -> float:
         op = _BIN_OPS.get(type(node.op))
         if op is None:
             raise CalcError(f"operator '{type(node.op).__name__}' is not allowed")
-        return op(_eval(node.left), _eval(node.right))
+        left, right = _eval(node.left), _eval(node.right)
+        if isinstance(node.op, ast.Pow):
+            _check_pow_bounds(left, right)
+        try:
+            return op(left, right)
+        except ZeroDivisionError as exc:
+            raise CalcError("division by zero") from exc
+        except (ValueError, OverflowError) as exc:
+            raise CalcError(str(exc)) from exc
     if isinstance(node, ast.UnaryOp):
         op = _UNARY_OPS.get(type(node.op))
         if op is None:
@@ -86,7 +111,14 @@ def _eval(node: ast.AST) -> float:
         if node.keywords:
             raise CalcError("keyword arguments are not allowed")
         args = [_eval(arg) for arg in node.args]
-        return _ALLOWED_FUNCS[node.func.id](*args)
+        try:
+            return _ALLOWED_FUNCS[node.func.id](*args)
+        except ZeroDivisionError as exc:
+            raise CalcError("division by zero") from exc
+        except (ValueError, OverflowError) as exc:
+            raise CalcError(str(exc)) from exc
+        except TypeError as exc:
+            raise CalcError(f"invalid arguments for '{node.func.id}'") from exc
     raise CalcError("unsupported expression")
 
 
