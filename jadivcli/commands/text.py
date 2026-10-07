@@ -27,10 +27,11 @@ def _encrypt(text: str) -> tuple[str, str]:
 
 
 def _decrypt(encoded: str, key: str) -> str:
-    separator = key[0]
     binary = encoded[: -8 * _PIN_LENGTH][::-1]
     chars = [chr(int(binary[i:i + 8], 2)) for i in range(0, len(binary), 8)]
-    return "".join(chars).replace(separator, "")
+    # Original characters are at even indices after join(); do not strip '*'
+    # with replace(), which would also drop '*' from the plaintext.
+    return "".join(chars[::2])
 
 
 @command("cipher", category="Text",
