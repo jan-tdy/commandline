@@ -27,6 +27,8 @@ def _encrypt(text: str) -> tuple[str, str]:
 
 
 def _decrypt(encoded: str, key: str) -> str:
+    if not key or not key.startswith(_SEPARATOR):
+        raise ValueError("Invalid decrypt key.")
     binary = encoded[: -8 * _PIN_LENGTH][::-1]
     chars = [chr(int(binary[i:i + 8], 2)) for i in range(0, len(binary), 8)]
     # Original characters are at even indices after join(); do not strip '*'
