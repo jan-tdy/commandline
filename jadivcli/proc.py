@@ -30,6 +30,20 @@ def require_binary(name: str, *, install_hint: str | None = None) -> bool:
     return False
 
 
+def confirm(prompt: str) -> bool:
+    """Ask the user to type ``y``/``yes`` before a destructive action.
+
+    Returns ``False`` on any non-affirmative answer, including EOF or
+    Ctrl-C, so callers can simply bail out without extra error handling.
+    """
+    try:
+        answer = input(f"{prompt} [y/N] ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return False
+    return answer in ("y", "yes")
+
+
 def run(args: Sequence[str], *, label: str | None = None) -> int:
     """Run ``args`` as a subprocess and return its exit code.
 
