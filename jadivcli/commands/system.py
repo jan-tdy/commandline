@@ -54,8 +54,12 @@ def apt_update(shell, args: List[str]) -> None:
 @command("apt_upgrade", category="System", usage="apt_upgrade",
          help="Upgrade installed APT packages (sudo).")
 def apt_upgrade(shell, args: List[str]) -> None:
-    if proc.require_binary("apt"):
-        proc.run(["sudo", "apt", "upgrade", "-y"])
+    if not proc.require_binary("apt"):
+        return
+    if not proc.confirm("Upgrade all installed packages?"):
+        print("Aborted.")
+        return
+    proc.run(["sudo", "apt", "upgrade", "-y"])
 
 
 @command("apt_install", category="System", usage="apt_install <package...>",
@@ -104,6 +108,9 @@ def screenshot(shell, args: List[str]) -> None:
 @command("reboot", category="System", usage="reboot",
          help="Reboot the system (sudo).")
 def reboot(shell, args: List[str]) -> None:
+    if not proc.confirm("Reboot the system now?"):
+        print("Aborted.")
+        return
     print("Rebooting the system...")
     proc.run(["sudo", "reboot"])
 
@@ -111,5 +118,8 @@ def reboot(shell, args: List[str]) -> None:
 @command("shutdown", category="System", usage="shutdown",
          help="Power off the system now (sudo).")
 def shutdown(shell, args: List[str]) -> None:
+    if not proc.confirm("Shut down the system now?"):
+        print("Aborted.")
+        return
     print("Shutting down the system...")
     proc.run(["sudo", "shutdown", "now"])
