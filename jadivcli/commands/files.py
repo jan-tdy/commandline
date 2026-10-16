@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 from typing import List
 
 from .. import proc
@@ -43,10 +44,17 @@ def edit(shell, args: List[str]) -> None:
         print("Usage: edit <file>")
         return
     editor = os.environ.get("EDITOR")
-    candidates = [editor] if editor else []
-    candidates += ["nano", "vi"]
-    for candidate in candidates:
-        if candidate and proc.has_binary(candidate):
-            proc.run([candidate, args[0]])
+    candidates: List[List[str]] = []
+    if editor:
+        try:
+            editor_argv = shlex.split(editor)
+        except ValueError:
+            editor_argv = []
+        if editor_argv:
+            candidates.append(editor_argv)
+    candidates += [["nano"], ["vi"]]
+    for argv in candidates:
+        if proc.has_binary(argv[0]):
+            proc.run(argv + [args[0]])
             return
     print("No editor found. Set $EDITOR or install nano/vi.")
