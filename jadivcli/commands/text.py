@@ -21,19 +21,28 @@ _PIN_LENGTH = 4
 def _encrypt(text: str) -> tuple[str, str]:
     pin = "".join(random.choices(string.digits, k=_PIN_LENGTH))
     spaced = _SEPARATOR.join(text)
-    binary = "".join(format(ord(c), "08b") for c in spaced)
+    binary = "".join(format(byte, "08b") for byte in spaced.encode("utf-8"))
     encoded = binary[::-1] + "".join(format(ord(d), "08b") for d in pin)
     return encoded, f"{_SEPARATOR}{pin}"
 
 
 def _decrypt(encoded: str, key: str) -> str:
-    if not key or not key.startswith(_SEPARATOR):
+    if len(key) != len(_SEPARATOR) + _PIN_LENGTH or not key.startswith(_SEPARATOR):
         raise ValueError("Invalid decrypt key.")
-    binary = encoded[: -8 * _PIN_LENGTH][::-1]
-    chars = [chr(int(binary[i:i + 8], 2)) for i in range(0, len(binary), 8)]
+    pin = key[len(_SEPARATOR):]
+    if not pin.isascii() or not pin.isdigit():
+        raise ValueError("Invalid decrypt key.")
+    pin_bits = "".join(format(ord(d), "08b") for d in pin)
+    if len(encoded) < len(pin_bits) or not encoded.endswith(pin_bits):
+        raise ValueError("Invalid decrypt key.")
+
+    binary = encoded[:-len(pin_bits)][::-1]
+    if len(binary) % 8 or set(binary) - {"0", "1"}:
+        raise ValueError("Invalid encrypted text.")
+    raw = bytes(int(binary[i:i + 8], 2) for i in range(0, len(binary), 8))
     # Original characters are at even indices after join(); do not strip '*'
     # with replace(), which would also drop '*' from the plaintext.
-    return "".join(chars[::2])
+    return raw.decode("utf-8")[::2]
 
 
 @command("cipher", category="Text",
