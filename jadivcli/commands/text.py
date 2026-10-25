@@ -30,7 +30,7 @@ def _decrypt(encoded: str, key: str) -> str:
     if len(key) != len(_SEPARATOR) + _PIN_LENGTH or not key.startswith(_SEPARATOR):
         raise ValueError("Invalid decrypt key.")
     pin = key[len(_SEPARATOR):]
-    if not pin.isdigit():
+    if not pin.isascii() or not pin.isdigit():
         raise ValueError("Invalid decrypt key.")
     pin_bits = "".join(format(ord(d), "08b") for d in pin)
     if len(encoded) < len(pin_bits) or not encoded.endswith(pin_bits):
