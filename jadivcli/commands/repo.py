@@ -3,12 +3,47 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import List, Optional
 
 from .. import proc
 from ..registry import command
+
+def _download_atomically(url: str, output: str) -> bool:
+    """Download to a sibling temporary file and replace output only on success."""
+    target = Path(output).expanduser()
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix=f".{target.name}.",
+            suffix=".download",
+            dir=str(target.parent),
+            delete=False,
+        ) as fh:
+            temporary = Path(fh.name)
+    except OSError as exc:
+        print(f"Could not prepare download for '{target}': {exc}")
+        return False
+
+    try:
+        if proc.run(["wget", url, "-O", str(temporary)]) != 0:
+            return False
+        os.replace(temporary, target)
+        return True
+    except OSError as exc:
+        print(f"Could not save '{target}': {exc}")
+        return False
+    finally:
+        if temporary is not None:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+
 
 # Default GitHub owner for the short 'apps' form.
 DEFAULT_OWNER = "jan-tdy"
@@ -42,6 +77,9 @@ def apps(shell, args: List[str]) -> None:
         print("Usage: apps <repo> [owner]")
         return
     repo = args[0]
+    if repo in {".", ".."} or "/" in repo or "\\" in repo:
+        print("Repository name must be a single name without path separators.")
+        return
     owner = args[1] if len(args) > 1 else DEFAULT_OWNER
     if not proc.require_binary("wget"):
         return
@@ -52,8 +90,9 @@ def apps(shell, args: List[str]) -> None:
     for candidate in branches:
         url = f"https://github.com/{owner}/{repo}/archive/refs/heads/{candidate}.zip"
         print(f"Downloading: {url}")
-        if proc.run(["wget", url, "-O", f"{repo}.zip"]) == 0:
-            print(f"Saved as {repo}.zip")
+        output = f"{repo}.zip"
+        if _download_atomically(url, output):
+            print(f"Saved as {output}")
             return
 
     print(f"Could not download '{owner}/{repo}' (tried branch(es): {', '.join(branches)}).")
@@ -70,5 +109,5 @@ def apps_full(shell, args: List[str]) -> None:
     if not proc.require_binary("wget"):
         return
     print(f"Downloading: {url}")
-    if proc.run(["wget", url, "-O", output]) == 0:
+    if _download_atomically(url, output):
         print(f"Saved as {output}")
