@@ -56,14 +56,26 @@ def file_kind(path: Path) -> str:
     return "document"
 
 
+def _to_rgb_on_white(img, Image, ImageOps):
+    """Apply EXIF orientation and composite transparency onto white."""
+    oriented = ImageOps.exif_transpose(img)
+    if "A" in oriented.getbands() or "transparency" in oriented.info:
+        rgba = oriented.convert("RGBA")
+        background = Image.new("RGB", rgba.size, "white")
+        background.paste(rgba, mask=rgba.getchannel("A"))
+        return background
+    return oriented.convert("RGB")
+
+
 def _image_to_pdf(path: Path, tmpdir: Path) -> Path:
     Image = optional_import("PIL.Image")
-    if Image is None:
+    ImageOps = optional_import("PIL.ImageOps")
+    if Image is None or ImageOps is None:
         raise ConversionError("Pillow is required for image inputs")
     out = tmpdir / (path.stem + ".pdf")
     try:
         with Image.open(path) as img:
-            img.convert("RGB").save(out, "PDF")
+            _to_rgb_on_white(img, Image, ImageOps).save(out, "PDF")
     except Exception as exc:  # noqa: BLE001 - surface any Pillow failure cleanly.
         raise ConversionError(f"could not convert image '{path.name}': {exc}") from exc
     return out
@@ -162,10 +174,11 @@ def stitch_vertical(images: list, output: Path) -> None:
 def load_image(path: Path):
     """Open an image file as an RGB Pillow image (used by the all-images fast path)."""
     Image = optional_import("PIL.Image")
-    if Image is None:
+    ImageOps = optional_import("PIL.ImageOps")
+    if Image is None or ImageOps is None:
         raise ConversionError("Pillow is required for image inputs")
     try:
         with Image.open(path) as img:
-            return img.convert("RGB")
+            return _to_rgb_on_white(img, Image, ImageOps)
     except Exception as exc:  # noqa: BLE001 - surface any Pillow failure cleanly.
         raise ConversionError(f"could not open image '{path.name}': {exc}") from exc
